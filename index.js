@@ -69,36 +69,54 @@ app.get('/api/video/info', async (req, res) => {
 });
 
 // Endpoint untuk download video
+// Pastikan semua variabel sudah didefinisikan sebelumnya
 app.get('/api/video/download', async (req, res) => {
     try {
-        const { url, itag } = req.query;
-
+        const { url } = req.query; // Ambil URL dari query parameter
+        
+        // Validasi URL
         if (!url || !ytdl.validateURL(url)) {
             return res.status(400).json({
                 error: 'Invalid YouTube URL'
             });
         }
 
+        // Dapatkan info video untuk judul
         const info = await ytdl.getInfo(url, agent ? { agent } : {});
-        const videoTitle = info.videoDetails.title.replace(/[^a-zA-Z0-9]/g, '_');
-        
-        res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
-        
-        const downloadOptions = {
-            quality: itag || 'highest',
-            filter: 'audioandvideo'
-        };
-        if (agent) downloadOptions.agent = agent;
+        const videoTitle = info.videoDetails.title
+            .replace(/[^a-zA-Z0-9]/g, '_') // Bersihkan karakter khusus
+            .substring(0, 100); // Batasi panjang nama file
 
-        ytdl(url, downloadOptions).pipe(res);
+        // Set header untuk download
+        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+        res.setHeader('Content-Type', 'video/mp4');
+
+        // Streaming video
+        ytdl(url, {
+            quality: 'highest',           // Kualitas tertinggi
+            filter: 'audioandvideo',      // Pastikan ada audio dan video
+            agent: agent                  // Gunakan agent dengan cookies
+        })
+        .on('error', (error) => {
+            console.error('Download error:', error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: 'Download failed',
+                    message: error.message
+                });
+            }
+        })
+        .pipe(res);
+
     } catch (error) {
-        res.status(500).json({
-            error: 'Failed to download video',
-            message: error.message
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Failed to process video',
+                message: error.message
+            });
+        }
     }
 });
-
 // Endpoint untuk download audio saja
 app.get('/api/audio/download', async (req, res) => {
     try {
