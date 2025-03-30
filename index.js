@@ -6,7 +6,7 @@ const app = express();
 const port = 3000;
 
 // URL ke cookies.json di GitHub raw (ganti dengan URL Anda)
-const COOKIES_URL = 'https://raw.githubusercontent.com/username/repository/main/cookies.json';
+const COOKIES_URL = 'https://raw.githubusercontent.com/tgr-cmp/db/refs/heads/main/yt_cookies.json';
 
 // Membuat agent dengan cookies dari GitHub
 let agent;
